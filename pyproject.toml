@@ -1,0 +1,12 @@
+[project]
+name = "coding-research-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "langchain-anthropic>=0.3.18",
+    "langchain-mcp-adapters>=0.1.9",
+    "langgraph>=0.6.2",
+    "python-dotenv>=1.1.1",
+]
