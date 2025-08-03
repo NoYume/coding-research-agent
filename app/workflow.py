@@ -1,3 +1,4 @@
+import re
 from typing import Dict, Any
 from langgraph.graph import StateGraph, END
 from langchain_anthropic import ChatAnthropic
@@ -47,13 +48,40 @@ class Workflow:
         
         try:
             response = self.llm.invoke(messages)
-            tool_names = [
-                name.strip()
-                for name in response.content.strip().split("\n")
-                if name.strip()
-            ]
-            print(f"⛏️  Extracted tools: {', '.join(tool_names[:5])}")
-            return {"extracted_tools": tool_names}
+            extracted_text = response.content.strip()
+            
+            tools = []
+            original_query_terms = set(state.query.lower().split())
+            
+            for line in extracted_text.split("\n"):
+                line = line.strip()
+                
+                if not line:
+                    continue
+                
+                line = re.sub(r'^\d+\.\s*', '', line)
+                line = re.sub(r'^[-•]\s*', '', line)
+                line = line.strip()
+                
+                if (line and 
+                len(line) <= 50 and
+                not line.startswith(('Based on', 'The article', 'Note:', 'Here are', 'These are')) and
+                not line.endswith(('alternatives', 'solutions', 'options', 'tools')) and
+                not any(skip_word in line.lower() for skip_word in ['alternative', 'vs', 'comparison', 'article']) and
+                line.lower() not in [term.lower() for term in original_query_terms]):
+                    
+                    tools.append(line)
+                
+            seen = set()
+            tools = [tool for tool in tools if not (tool.lower() in seen or seen.add(tool.lower()))]
+            
+            tools = tools[:5]
+            
+            if not tools:
+                tools = ["No specific tools found"]
+            
+            print(f"⛏️  Extracted tools: {', '.join(tools[:5])}")
+            return {"extracted_tools": tools}
         
         except Exception as e:
             print(f"Error: {e}")
@@ -88,7 +116,7 @@ class Workflow:
         extracted_tools = getattr(state, "extracted_tools", [])
         
         if not extracted_tools:
-            print("⚠️ No extracted tools found, using direct search")
+            print("⚠️  No extracted tools found, using direct search")
             search_results = self.firecrawl.search_companies(state.query, num_results=4)
             tool_names = [
                 result.get("metadata", {}).get("title", "Unknown")

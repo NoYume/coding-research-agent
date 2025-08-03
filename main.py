@@ -9,7 +9,7 @@ def main():
 
     while True:
         print("\n Type quit/exit to stop program")
-        query = input("\n❔ Developer Tools Query: ").strip()
+        query = input("\n❔ Developer Tools Question: ").strip()
         if query.lower() in {"quit", "exit"}:
             break
 
