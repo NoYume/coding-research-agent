@@ -6,13 +6,13 @@ load_dotenv()
 def main():
     workflow = Workflow()
     print("💻 Developer Tools Research Agent 🤖")
-    
+
     while True:
         print("\n Type quit/exit to stop program")
         query = input("\n❔ Developer Tools Query: ").strip()
         if query.lower() in {"quit", "exit"}:
             break
-        
+
         if query:
             result = workflow.run(query)
             print(f"\n📊 Results for: {query}")

@@ -24,7 +24,7 @@ class FirecrawlService:
             )
             return result
         except Exception as e:
-            print(e)
+            print(f"Error: {e}")
             return []
         
 
@@ -36,5 +36,5 @@ class FirecrawlService:
             )
             return result
         except Exception as e:
-            print(e)
+            print(f"Error: {e}")
             return None

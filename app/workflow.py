@@ -13,8 +13,8 @@ class Workflow:
         self.llm = ChatAnthropic(model="claude-3-5-haiku-latest", temperature=0.1)
         self.prompts = DeveloperToolsPrompts()
         self.workflow = self._build_workflow()
-        
-    
+
+
     def _build_workflow(self):
         graph = StateGraph(ResearchState)
         graph.add_node("extract_tools", self._extract_tools_step)
@@ -25,11 +25,11 @@ class Workflow:
         graph.add_edge("research", "analyze")
         graph.add_edge("analyze", END)
         return graph.compile()
-    
-    
+
+
     def _extract_tools_step(self, state: ResearchState) -> Dict[str, Any]:
         print(f"🌐 Finding articles about: {state.query}")
-        
+
         article_query = f"{state.query} tools comparison best alternatives"
         search_results = self.firecrawl.search_companies(article_query, num_results=3)
         
@@ -38,8 +38,8 @@ class Workflow:
             url = result.get("url", "")
             scraped = self.firecrawl.scrape_company_page(url)
             if scraped:
-                all_content + scraped.markdown[:1500] + "\n\n"
-                
+                all_content += scraped.markdown[:1500] + "\n\n"
+
         messages = [
             SystemMessage(content=self.prompts.TOOL_EXTRACTION_SYSTEM),
             HumanMessage(content=self.prompts.tool_extraction_user(state.query, all_content))
@@ -52,14 +52,14 @@ class Workflow:
                 for name in response.content.strip().split("\n")
                 if name.strip()
             ]
-            print(f"⛏️ Extracted tools: {', '.join(tool_names[:5])}")
+            print(f"⛏️  Extracted tools: {', '.join(tool_names[:5])}")
             return {"extracted_tools": tool_names}
         
         except Exception as e:
-            print(e)
+            print(f"Error: {e}")
             return {"extracted_tools": []}
-    
-        
+
+
     def _analyze_company_content(self, company_name: str, content: str) -> CompanyAnalysis:
         structured_llm = self.llm.with_structured_output(CompanyAnalysis)
         
@@ -67,12 +67,12 @@ class Workflow:
             SystemMessage(content=self.prompts.TOOL_ANALYSIS_SYSTEM),
             HumanMessage(content=self.prompts.tool_analysis_user(company_name, content))
         ]
-        
+
         try:
             analysis = structured_llm.invoke(messages)
             return analysis
         except Exception as e:
-            print(e)
+            print(f"Error: {e}")
             return CompanyAnalysis(
                 pricing_model="Unknown",
                 is_open_source=None,
@@ -82,8 +82,8 @@ class Workflow:
                 language_support=[],
                 integration_capabilities=[],
             )
-    
-    
+
+
     def _research_step(self, state: ResearchState) -> Dict[str, Any]:
         extracted_tools = getattr(state, "extracted_tools", [])
         
@@ -96,17 +96,17 @@ class Workflow:
             ]
         else:
             tool_names = extracted_tools[:4]
-            
+
         print(f"🔬 Researching specific tools: {', '.join(tool_names)}")
         
         companies = []
         for tool_name in tool_names:
             tool_search_results = self.firecrawl.search_companies(tool_name + " official site", num_results=1)
-            
+
             if tool_search_results:
                 result = tool_search_results.data[0]
                 url = result.get("url", "")
-                
+
                 company = CompanyInfo(
                     name=tool_name,
                     description=result.get("markdown", ""),
@@ -114,7 +114,7 @@ class Workflow:
                     tech_stack=[],
                     competitors=[]
                 )
-                
+
                 scraped = self.firecrawl.scrape_company_page(url)
                 if scraped:
                     content = scraped.markdown
@@ -137,16 +137,24 @@ class Workflow:
         print("🕗 Generating recommendations")
         
         company_data = ", ".join([
-            company.json() for company in state.companies
+            company.json() for company in state.companies[:4]
         ])
         
         messages = [
             SystemMessage(content=self.prompts.RECOMMENDATIONS_SYSTEM),
             HumanMessage(content=self.prompts.recommendations_user(state.query, company_data))
         ]
-        
-        response = self.llm.invoke(messages)
-        return {"analysis": response.content}
+        try:
+            response = self.llm.invoke(messages)
+            analysis_content = response.content[:1000]
+            
+            last_period = analysis_content.rfind(".")
+            if last_period > 500:
+                analysis_content = analysis_content[:last_period + 1]
+            return {"analysis": response.content}
+        except Exception as e:
+            print(f"Error: {e}")
+            return {"analysis": "Unable to generate recommendations in given time"}
     
     
     def run(self, query: str) -> ResearchState:
