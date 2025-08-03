@@ -8,6 +8,7 @@ def main():
     print("💻 Developer Tools Research Agent 🤖")
     
     while True:
+        print("\n Type quit/exit to stop program")
         query = input("\n❔ Developer Tools Query: ").strip()
         if query.lower() in {"quit", "exit"}:
             break
