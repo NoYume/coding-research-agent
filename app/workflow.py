@@ -16,7 +16,7 @@ class Workflow:
         
     
     def _build_workflow(self):
-        graph = StateGraph()
+        graph = StateGraph(ResearchState)
         graph.add_node("extract_tools", self._extract_tools_step)
         graph.add_node("research", self._research_step)
         graph.add_node("analyze", self._analyze_step)
@@ -57,7 +57,7 @@ class Workflow:
         
         except Exception as e:
             print(e)
-            return {"extracted tools", []}
+            return {"extracted_tools": []}
     
         
     def _analyze_company_content(self, company_name: str, content: str) -> CompanyAnalysis:
@@ -80,7 +80,7 @@ class Workflow:
                 description="Failed",
                 api_available=None,
                 language_support=[],
-                integration_capabilities=[]
+                integration_capabilities=[],
             )
     
     
@@ -91,20 +91,20 @@ class Workflow:
             print("⚠️ No extracted tools found, using direct search")
             search_results = self.firecrawl.search_companies(state.query, num_results=4)
             tool_names = [
-                results.get("metadata", {}).get("title", "Unknown")
-                for results in search_results.data
+                result.get("metadata", {}).get("title", "Unknown")
+                for result in search_results.data
             ]
         else:
             tool_names = extracted_tools[:4]
             
-        print(f"🔍 Researching specific tools: {', '.join(tool_names)}")
+        print(f"🔬 Researching specific tools: {', '.join(tool_names)}")
         
         companies = []
         for tool_name in tool_names:
-            tool_search_results = self.firecrawl.search_companies(tool_name + "official site", num_results=1)
+            tool_search_results = self.firecrawl.search_companies(tool_name + " official site", num_results=1)
             
             if tool_search_results:
-                results = tool_search_results.data[0]
+                result = tool_search_results.data[0]
                 url = result.get("url", "")
                 
                 company = CompanyInfo(

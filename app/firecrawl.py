@@ -29,7 +29,7 @@ class FirecrawlService:
         
 
     def scrape_company_page(self, url: str):
-        try: 
+        try:
             result = self.app.scrape_url(
                 url,
                 formats=["markdown"]

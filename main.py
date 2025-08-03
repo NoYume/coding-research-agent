@@ -5,10 +5,10 @@ load_dotenv()
 
 def main():
     workflow = Workflow()
-    print("Developer Tools Research Agent")
+    print("💻 Developer Tools Research Agent 🤖")
     
     while True:
-        query = input("\n Developer Tools Query: ").strip()
+        query = input("\n❔ Developer Tools Query: ").strip()
         if query.lower() in {"quit", "exit"}:
             break
         
@@ -16,8 +16,7 @@ def main():
             result = workflow.run(query)
             print(f"\n📊 Results for: {query}")
             print("=" * 60)
-            
-            
+
             for i, company in enumerate(result.companies, 1):
                 print(f"\n{i}. 🏢 {company.name}")
                 print(f"   🌐 Website: {company.website}")
@@ -47,11 +46,12 @@ def main():
                     print(f"   📝 Description: {company.description}")
 
                 print()
-            
-        if result.analysis:
-            print("Developer Recommendations: ")
-            print("-" * 40)
-            print(result.analysis)
-            
+
+            if result.analysis:
+                print("Developer Recommendations: ")
+                print("-" * 40)
+                print(result.analysis)
+
+
 if __name__ == "__main__":
     main()
