@@ -67,4 +67,4 @@ class ProgressLogger:
 
 
     def log_warning(self, message: str):
-        print(f"⚠️ {message}")
+        print(f"⚠️  {message}")

@@ -170,7 +170,7 @@ class Workflow:
         
         try:
             response = self.llm.invoke(messages)
-            self.logger.start_spinner("Content analysis complete")
+            self.logger.stop_spinner("Content analysis complete")
             
             extracted_text = response.content.strip()
             tools = []
