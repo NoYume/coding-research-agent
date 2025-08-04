@@ -245,10 +245,13 @@ class Workflow:
         if not extracted_tools:
             self.logger.log_warning("No extracted tools found, using direct search")
             search_results = self.firecrawl.search_companies(state.query, num_results=4)
-            tool_names = [
-                result.get("metadata", {}).get("title", "Unknown")
-                for result in search_results.data
-            ]
+            if hasattr(search_results, "data") and search_results.data:
+                tool_names = [
+                    result.get("metadata", {}).get("title", "Unknown")
+                    for result in search_results.data
+                ]
+            else:
+                tool_names = self._generate_fallback_tools(state.query)
         else:
             tool_names = extracted_tools[:4]
 
@@ -259,9 +262,10 @@ class Workflow:
             self.logger.start_spinner(f"Researching {tool_name} ({i+1}/{len(tool_names)})...")
             
             try:
-                tool_search_results = self.firecrawl.search_companies(tool_name + " official site", num_results=1)
+                search_tools = f"{tool_name} official documentation pricing"
+                tool_search_results = self.firecrawl.search_companies(search_tools, num_results=1)
 
-                if tool_search_results:
+                if hasattr(tool_search_results, "data") and tool_search_results.data:
                     result = tool_search_results.data[0]
                     url = result.get("url", "")
 
@@ -274,7 +278,7 @@ class Workflow:
                     )
 
                     scraped = self.firecrawl.scrape_company_page(url)
-                    if scraped:
+                    if scraped and hasattr(scraped, "markdown"):
                         content = scraped.markdown
                         analysis = self._analyze_company_content(company.name, content)
                         
