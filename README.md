@@ -24,6 +24,10 @@ The Coding Research AI Agent is an intelligent CLI tool that helps developers di
 - 🛡️ **Robust Error Handling** - Automatic retries and graceful failure recovery
 - 💾 **Local Processing** - All analysis runs on your machine
 
+<p align="center">
+  <img src=https://github.com/NoYume/coding-research-agent/blob/748c7db4302ba0310e5a4d25ec9abd70794a4692/media/loading_messages.gif />
+</p>
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -81,39 +85,10 @@ FIRECRAWL_API_KEY=your_firecrawl_api_key_here
 ```
 
 ### Sample Output
-```
-🌐 Finding articles about: React alternatives
-  → Detected category: JavaScript frameworks and UI libraries
-✅ Found 3 articles
-✅ Scraped 3 articles (4,506 characters)
-✅ Content analysis complete
-⛏️ Extracted tools: Vue.js, Angular, Svelte, Solid.js, Preact
-🔬 Researching 4 specific tools...
-✅ Vue.js research complete
-✅ Angular research complete
-✅ Svelte research complete
-✅ Solid.js research complete
-   → Successfully researched 4 tools
-✅ Recommendations generated
-🕗 Analysis complete
 
-📊 Results for: React alternatives
-============================================================
-
-1. 🏢 Vue.js
-   🌐 Website: https://vuejs.org/
-   💰 Pricing: Free
-   📖 Open Source: True
-   🛠️ Tech Stack: JavaScript, TypeScript, Vue Router, Vuex, Pinia
-   💻 Language Support: JavaScript, TypeScript
-   🔌 API: ✅ Available
-   🔗 Integrations: Vite, Webpack, Nuxt.js, VS Code
-   📝 Description: A progressive JavaScript framework for building user interfaces with component-based architecture.
-
-Developer Recommendations:
-----------------------------------------
-Vue.js emerges as the top React alternative for most projects. It offers excellent developer experience with its gentle learning curve and comprehensive ecosystem. The framework is completely free and open-source, making it cost-effective for any project size. Vue's key technical advantage is its progressive adoption approach, allowing you to integrate it incrementally into existing projects while providing full-featured development for new applications.
-```
+<p align="center">
+  <img src=https://github.com/NoYume/coding-research-agent/blob/748c7db4302ba0310e5a4d25ec9abd70794a4692/media/output_example.gif />
+</p>
 
 ## 🏗️ Project Structure
 
@@ -154,6 +129,10 @@ uv run main.py
 - `help` - Show help menu with examples
 - `clear` - Clear the terminal screen
 - `exit`/`quit` - Exit the application
+
+<p align="center">
+  <img src=https://github.com/NoYume/coding-research-agent/blob/c36edc252299d62144f0291b4b43e5fb9e228f3c/media/command_example.gif />
+</p>
 
 ## 🛠️ Technical Architecture
 
