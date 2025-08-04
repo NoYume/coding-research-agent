@@ -21,20 +21,23 @@ class ProgressLogger:
         
     
     def stop_spinner(self, completion_message: str =""):
+        if not self.spinner_active:
+            return
+        
         self.spinner_active = False
         if self.spinner_thread:
             self.spinner_thread.join()
         
-        line_length = len(self.current_message) + 20
-        sys.stdout.write('\r' + ' ' * line_length + '\r')
+        sys.stdout.write('\r')
+        sys.stdout.write(' ' * 100) 
+        sys.stdout.write('\r')
         sys.stdout.flush()
         
-        time.sleep(0.01)
+        time.sleep(0.02)
         
         if completion_message:
             print(f"✓  {completion_message}")
-            
-        sys.stdout.flush()
+            sys.stdout.flush()
         
         
     def _spin(self):

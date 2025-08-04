@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Any
+from typing import Dict, List, Any
 from langgraph.graph import StateGraph, END
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -30,11 +30,115 @@ class Workflow:
         return graph.compile()
 
 
-    def _extract_tools_step(self, state: ResearchState) -> Dict[str, Any]:
-        print(f"🌐 Finding articles about: {state.query}")
-
-        self.logger.start_spinner("Searching for relevant articles...")
+    def _get_dynamic_category_info(self, query: str) -> Dict[str, Any]:
+        category_prompt = f"""
+        Analyze this developer tools query: "{query}"
         
+        Determine:
+        1. What CATEGORY of tools/services this query is asking about
+        2. What specific tool EXAMPLES would be good alternatives
+        3. What generic TERMS to exclude from extraction
+        
+        Respond in this exact format:
+        CATEGORY: [specific category name]
+        EXAMPLES: [Tool1, Tool2, Tool3, Tool4, Tool5]
+        EXCLUDE: [generic term1, generic term2, generic term3]
+        
+        Example for "alternatives to Slack":
+        CATEGORY: team communication and collaboration platforms
+        EXAMPLES: Microsoft Teams, Discord, Mattermost, Rocket.Chat, Zulip
+        EXCLUDE: communication platform, collaboration tool, messaging app
+        """
+        
+        try:
+            response = self.llm.invoke([
+                SystemMessage(content="You are a tech expert who categorizes developer tools and suggests alternatives."),
+                HumanMessage(content=category_prompt)
+            ])
+            
+            lines = response.content.strip().split("\n")
+            category = ""
+            examples = []
+            exclude_terms = []
+            
+            for line in lines:
+                if line.startswith('CATEGORY:'):
+                    category = line.replace('CATEGORY:', '').strip()
+                elif line.startswith('EXAMPLES:'):
+                    examples_str = line.replace('EXAMPLES:', '').strip()
+                    examples = [ex.strip() for ex in examples_str.split(',')]
+                elif line.startswith('EXCLUDE:'):
+                    exclude_str = line.replace('EXCLUDE:', '').strip()
+                    exclude_terms = [ex.strip() for ex in exclude_str.split(',')]
+            
+            return {
+                "category": category,
+                "examples": examples[:5],
+                "exclude_terms": exclude_terms
+            }
+        
+        except Exception as e:
+            self.logger.log_error("Failed to get dynamic category info", e)
+            return {
+                "category": "developer tools and services",
+                "examples": ["Alternative1", "Alternative2", "Alternative3"],
+                "exclude_terms": ["tool", "service", "platform"]
+            }
+
+
+    def _generate_fallback_tools(self, query: str) -> List[str]:
+        fallback_prompt = f"""
+        The user asked: "{query}"
+        
+        Our article extraction failed to find specific tools. 
+        Please suggest 4-5 actual, well-known alternatives or tools that would answer this query.
+        
+        Requirements:
+        - Only suggest real, existing tools/services/libraries
+        - Focus on popular, widely-used alternatives
+        - One tool name per line
+        - No descriptions or explanations
+        
+        Example for "alternatives to GitHub":
+        GitLab
+        Bitbucket
+        SourceForge
+        Gitea
+        """
+        
+        try:
+            self.logger.start_spinner("Generating intelligent fallback suggestions...")
+        
+            response = self.llm.invoke([
+                SystemMessage(content="You are a knowledgeable developer who knows popular tools in every domain."),
+                HumanMessage(content=fallback_prompt)
+            ])
+            
+            tools = []
+            for line in response.content.strip().split("\n"):
+                line = line.strip()
+                if line and len(line) <= 50 and not line.startswith(("For", "Here", "These")):
+                    line = re.sub(r'^\d+\.\s*', '', line)
+                    line = re.sub(r'^[-•]\s*', '', line)
+                    tools.append(line.strip())
+            
+            tools = tools[:4]
+            self.logger.stop_spinner(f"Generated {len(tools)} fallback suggestions")
+            return tools if tools else ["Popular Alternative"]
+            
+        except Exception as e:
+            self.logger.stop_spinner("")
+            self.logger.log_error("Failed to generate fallback tools", e)
+            return ["Generic Alternative"]
+
+
+    def _extract_tools_step(self, state: ResearchState) -> Dict[str, Any]:
+        self.logger.log_step("🌐", f"Finding articles about: {state.query}")
+
+        category_info = self._get_dynamic_category_info(state.query)
+        self.logger.log_substep(f"Detected category: {category_info['category']}")
+        
+        self.logger.start_spinner("Searching for relevant articles...")
         try:
             article_query = f"{state.query} tools comparison best alternatives"
             search_results = self.firecrawl.search_companies(article_query, num_results=3)
@@ -61,7 +165,7 @@ class Workflow:
 
             messages = [
             SystemMessage(content=self.prompts.TOOL_EXTRACTION_SYSTEM),
-            HumanMessage(content=self.prompts.tool_extraction_user(state.query, all_content))
+            HumanMessage(content=self.prompts.tool_extraction_user(state.query, all_content, category_info))
         ]
         
         try:
@@ -84,6 +188,7 @@ class Workflow:
                 
                 if (line and 
                 len(line) <= 50 and
+                line.lower() != "no specific tools found" and
                 not line.startswith(('Based on', 'The article', 'Note:', 'Here are', 'These are')) and
                 not line.endswith(('alternatives', 'solutions', 'options', 'tools')) and
                 not any(skip_word in line.lower() for skip_word in ['alternative', 'vs', 'comparison', 'article']) and
@@ -93,11 +198,12 @@ class Workflow:
                 
             seen = set()
             tools = [tool for tool in tools if not (tool.lower() in seen or seen.add(tool.lower()))]
-            
             tools = tools[:5]
             
             if not tools:
-                tools = ["No specific tools found"]
+                self.logger.log_warning("No specific tools found in articles, using fallback search")
+                fallback_tools = self._generate_fallback_tools(state.query)
+                return {"extracted_tools": fallback_tools}
             
             self.logger.log_step("⛏️", f"Extracted tools: {', '.join(tools)}")
             return {"extracted_tools": tools}
@@ -105,7 +211,8 @@ class Workflow:
         except Exception as e:
             self.logger.stop_spinner("")
             self.logger.log_error("Failed to extract tools", e)
-            return {"extracted_tools": []}
+            fallback_tools = self._generate_fallback_tools(state.query)
+            return {"extracted_tools": fallback_tools}
 
 
     def _analyze_company_content(self, company_name: str, content: str) -> CompanyAnalysis:

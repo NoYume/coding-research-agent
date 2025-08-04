@@ -1,3 +1,6 @@
+from typing import Dict, Any
+
+
 class DeveloperToolsPrompts:
     """Collection of prompts for analyzing developer tools and technologies"""
 
@@ -24,51 +27,29 @@ class DeveloperToolsPrompts:
 
 
     @staticmethod
-    def tool_extraction_user(query: str, content: str) -> str:
-        query_lower = query.lower()
+    def tool_extraction_user(query: str, content: str, category_info: Dict[str, Any]) -> str:
+        category = category_info.get("category", "developer tools")
+        examples = category_info.get("examples", ["Tool1", "Tool2", "Tool3"])
+        exclude_terms = category_info.get("exclude_terms", ["tool", "service"])
         
-        # Define query categories and their characteristics
-        if any(term in query_lower for term in ['vercel', 'netlify', 'hosting', 'deploy', 'railway', 'render', 'cloud']):
-            category = "hosting/deployment platforms"
-            examples = "Vercel\nNetlify\nRender\nRailway\nFly.io"
-            exclude_terms = ["hosting platform", "deployment service", "cloud provider"]
+        examples_text = '\n'.join(examples)
         
-        elif any(term in query_lower for term in ['chatgpt', 'llm', 'language model', 'ai model', 'gpt', 'claude']):
-            category = "AI language models and LLM services"  
-            examples = "Claude\nGemini\nLlama\nMistral\nCopilot"
-            exclude_terms = ["AI model", "language model", "chatbot", "ChatGPT"]
-        
-        elif any(term in query_lower for term in ['database', 'db', 'chroma', 'vector', 'pinecone', 'storage']):
-            category = "databases and data storage solutions"
-            examples = "ChromaDB\nPinecone\nWeaviate\nQdrant\nMilvus"
-            exclude_terms = ["database", "vector database", "storage solution"]
-            
-        elif any(term in query_lower for term in ['framework', 'library', 'react', 'vue', 'angular']):
-            category = "frameworks and libraries"
-            examples = "React\nVue.js\nAngular\nSvelte\nNext.js"
-            exclude_terms = ["framework", "library", "tool"]
-            
-        else:
-            category = "developer tools, platforms, and services"
-            examples = "Tool1\nTool2\nTool3"
-            exclude_terms = ["tool", "platform", "service"]
-    
-    # Build the extraction prompt
         return f"""Query: {query}
-                Article Content: {content[:3000]}
 
-                Extract ONLY specific {category} mentioned in this content.
+        Article Content: {content[:3000]}
 
-                EXAMPLES OF CORRECT FORMAT:
-                {examples}
+        Extract ONLY specific {category} mentioned in this content.
 
-                STRICT RULES:
-                - Return ONLY product names, one per line
-                - No descriptions, explanations, or sentences
-                - Skip these generic terms: {', '.join(exclude_terms)}
-                - Maximum 5 tools
-                - One tool name per line
-                - No numbering, bullets, or formatting"""
+        EXAMPLES OF CORRECT FORMAT:
+        {examples_text}
+
+        STRICT RULES:
+        - Return ONLY product names, one per line
+        - No descriptions, explanations, or sentences
+        - Skip these generic terms: {', '.join(exclude_terms)}
+        - Maximum 5 tools
+        - One tool name per line
+        - No numbering, bullets, or formatting"""
 
 
     # Company/Tool analysis prompts
