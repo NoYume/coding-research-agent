@@ -6,6 +6,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from .models import ResearchState, CompanyInfo, CompanyAnalysis
 from .firecrawl import FirecrawlService
 from .prompts import DeveloperToolsPrompts
+from .logger import ProgressLogger
 
 
 class Workflow:
@@ -14,6 +15,7 @@ class Workflow:
         self.llm = ChatAnthropic(model="claude-3-5-haiku-latest", temperature=0.1)
         self.prompts = DeveloperToolsPrompts()
         self.workflow = self._build_workflow()
+        self.logger = ProgressLogger()
 
 
     def _build_workflow(self):
@@ -31,25 +33,42 @@ class Workflow:
     def _extract_tools_step(self, state: ResearchState) -> Dict[str, Any]:
         print(f"🌐 Finding articles about: {state.query}")
 
-        article_query = f"{state.query} tools comparison best alternatives"
-        search_results = self.firecrawl.search_companies(article_query, num_results=3)
+        self.logger.start_spinner("Searching for relevant articles...")
         
+        try:
+            article_query = f"{state.query} tools comparison best alternatives"
+            search_results = self.firecrawl.search_companies(article_query, num_results=3)
+            self.logger.stop_spinner(f"Found {len(search_results.data)} articles")
+        except Exception as e:
+            self.logger.stop_spinner("")
+            self.logger.log_error("Failed to search articles", e)
+            return {"extracted_tools": []}
+            
+        self.logger.start_spinner("Scraping article content...")
         all_content = ""
-        for result in search_results.data:
+        scraped_count = 0
+        
+        for i, result in enumerate(search_results.data):
             url = result.get("url", "")
             scraped = self.firecrawl.scrape_company_page(url)
             if scraped:
                 all_content += scraped.markdown[:1500] + "\n\n"
+                scraped_count += 1
+            
+            self.logger.stop_spinner(f"Scraped {scraped_count} articles ({len(all_content)} characters)")
+            
+            self.logger.start_spinner("Analyzing content to extract tool names...")
 
-        messages = [
+            messages = [
             SystemMessage(content=self.prompts.TOOL_EXTRACTION_SYSTEM),
             HumanMessage(content=self.prompts.tool_extraction_user(state.query, all_content))
         ]
         
         try:
             response = self.llm.invoke(messages)
-            extracted_text = response.content.strip()
+            self.logger.start_spinner("Content analysis complete")
             
+            extracted_text = response.content.strip()
             tools = []
             original_query_terms = set(state.query.lower().split())
             
@@ -80,11 +99,12 @@ class Workflow:
             if not tools:
                 tools = ["No specific tools found"]
             
-            print(f"⛏️  Extracted tools: {', '.join(tools[:5])}")
+            self.logger.log_step("⛏️", f"Extracted tools: {', '.join(tools)}")
             return {"extracted_tools": tools}
         
         except Exception as e:
-            print(f"Error: {e}")
+            self.logger.stop_spinner("")
+            self.logger.log_error("Failed to extract tools", e)
             return {"extracted_tools": []}
 
 
@@ -116,7 +136,7 @@ class Workflow:
         extracted_tools = getattr(state, "extracted_tools", [])
         
         if not extracted_tools:
-            print("⚠️  No extracted tools found, using direct search")
+            self.logger.log_warning("No extracted tools found, using direct search")
             search_results = self.firecrawl.search_companies(state.query, num_results=4)
             tool_names = [
                 result.get("metadata", {}).get("title", "Unknown")
@@ -125,63 +145,81 @@ class Workflow:
         else:
             tool_names = extracted_tools[:4]
 
-        print(f"🔬 Researching specific tools: {', '.join(tool_names)}")
+        self.logger.log_step("🔬", f"Researching {len(tool_names)} specific tools...")
         
         companies = []
-        for tool_name in tool_names:
-            tool_search_results = self.firecrawl.search_companies(tool_name + " official site", num_results=1)
+        for i, tool_name in enumerate(tool_names):
+            self.logger.start_spinner(f"Researching {tool_name} ({i+1}/{len(tool_names)})...")
+            
+            try:
+                tool_search_results = self.firecrawl.search_companies(tool_name + " official site", num_results=1)
 
-            if tool_search_results:
-                result = tool_search_results.data[0]
-                url = result.get("url", "")
+                if tool_search_results:
+                    result = tool_search_results.data[0]
+                    url = result.get("url", "")
 
-                company = CompanyInfo(
-                    name=tool_name,
-                    description=result.get("markdown", ""),
-                    website=url,
-                    tech_stack=[],
-                    competitors=[]
-                )
+                    company = CompanyInfo(
+                        name=tool_name,
+                        description=result.get("markdown", ""),
+                        website=url,
+                        tech_stack=[],
+                        competitors=[]
+                    )
 
-                scraped = self.firecrawl.scrape_company_page(url)
-                if scraped:
-                    content = scraped.markdown
-                    analysis = self._analyze_company_content(company.name, content)
-                    
-                    company.pricing_model = analysis.pricing_model
-                    company.is_open_source = analysis.is_open_source
-                    company.tech_stack = analysis.tech_stack
-                    company.description = analysis.description
-                    company.api_available = analysis.api_available 
-                    company.language_support = analysis.language_support
-                    company.integration_capabilities = analysis.integration_capabilities 
+                    scraped = self.firecrawl.scrape_company_page(url)
+                    if scraped:
+                        content = scraped.markdown
+                        analysis = self._analyze_company_content(company.name, content)
+                        
+                        company.pricing_model = analysis.pricing_model
+                        company.is_open_source = analysis.is_open_source
+                        company.tech_stack = analysis.tech_stack
+                        company.description = analysis.description
+                        company.api_available = analysis.api_available 
+                        company.language_support = analysis.language_support
+                        company.integration_capabilities = analysis.integration_capabilities
                 
-                companies.append(company)
-                
+                    companies.append(company)
+                    self.logger.stop_spinner(f"{tool_name} research complete")
+                else:
+                    self.logger.stop_spinner("")
+                    self.logger.log_warning(f"No results found for {tool_name}")
+            
+            except Exception as e:
+                self.logger.stop_spinner("")
+                self.logger.log_error(f"Failed to research {tool_name}", e)
+
+        self.logger.log_substep(f"Successfully researched {len(companies)} tools")        
         return {"companies": companies}
     
     
     def _analyze_step(self, state: ResearchState) -> Dict[str, Any]:
-        print("🕗 Generating recommendations")
+        self.logger.start_spinner("Generating personalized recommendations...")
         
-        company_data = ", ".join([
-            company.json() for company in state.companies[:4]
-        ])
-        
-        messages = [
-            SystemMessage(content=self.prompts.RECOMMENDATIONS_SYSTEM),
-            HumanMessage(content=self.prompts.recommendations_user(state.query, company_data))
-        ]
         try:
+            company_data = ", ".join([
+                company.json() for company in state.companies[:4]
+            ])
+        
+            messages = [
+                SystemMessage(content=self.prompts.RECOMMENDATIONS_SYSTEM),
+                HumanMessage(content=self.prompts.recommendations_user(state.query, company_data))
+            ]
+            
             response = self.llm.invoke(messages)
             analysis_content = response.content[:1000]
             
             last_period = analysis_content.rfind(".")
             if last_period > 500:
                 analysis_content = analysis_content[:last_period + 1]
+                
+            self.logger.stop_spinner("Recommendations generated")
+            self.logger.log_step("🕗", "Analysis complete")
             return {"analysis": response.content}
+        
         except Exception as e:
-            print(f"Error: {e}")
+            self.logger.stop_spinner("")
+            self.logger.log_error("Failed to generate recommendations", e)
             return {"analysis": "Unable to generate recommendations in given time"}
     
     
