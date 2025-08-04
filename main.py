@@ -1,19 +1,72 @@
+import os
+import time
 from dotenv import load_dotenv
 from app.workflow import Workflow
 
 load_dotenv()
 
+
+def print_intro(): 
+    banner = r"""
+╔═════════════════════════════════════════════════════════╗
+║              Coding Research AI Agent 🤖                ║
+╚═════════════════════════════════════════════════════════╝
+    """
+    
+    print(banner)
+    print("🔍 Discover • Compare • Analyze Developer Tools")
+    print("\nReady to help you find the perfect tools for your project!")
+    print("Type your query below or 'help' for assistance.")
+    print("-" * 50)
+
+
+def show_help():
+    help_text = """
+            📚 HELP - Available Commands:
+
+            🔍 Research Commands:
+            • Just type your question naturally
+            • "alternatives to [tool name]"
+            • "best [category] tools"
+            • "free alternatives to [tool]"
+
+            💡 Example Queries:
+            • "React alternatives"
+            • "databases better than MySQL" 
+            • "hosting platforms like AWS"
+            • "vector databases for AI apps"
+
+            ⚙️  System Commands:
+            • help    - Show this help menu
+            • clear   - Clear the screen
+            • exit    - Quit the application
+            • quit    - Quit the application
+
+            💬 Tips:
+            • Be specific about your needs
+            • Mention your use case for better recommendations
+            • Ask about pricing, features, or integrations
+        """
+    print(help_text)
+    
+
 def main():
+    print_intro()
     workflow = Workflow()
-    print("💻 Developer Tools Research Agent 🤖")
 
     while True:
-        print("\n Type quit/exit to stop program")
         query = input("\n❔ Developer Tools Question: ").strip()
         if query.lower() in {"quit", "exit"}:
+            print("\n👋 Thanks for using Coding Research AI Agent!")
             break
-
-        if query:
+        elif query.lower() == "help":
+            show_help()
+            continue
+        elif query.lower() == "clear":
+            os.system('cls' if os.name == 'nt' else 'clear')
+            print_intro()
+            continue
+        elif query:
             result = workflow.run(query)
             print(f"\n📊 Results for: {query}")
             print("=" * 60)
