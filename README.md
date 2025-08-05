@@ -16,13 +16,13 @@ The Coding Research AI Agent is an intelligent CLI tool that helps developers di
 
 ### ✨ Key Features
 
-- 🔍 **Smart Tool Discovery** - Automatically finds alternatives to any developer tool
-- 🧠 **Dynamic Categorization** - Uses AI to understand query context and tool categories
-- 📊 **Comprehensive Analysis** - Extracts pricing, tech stack, language support, and integrations
-- 🔄 **Intelligent Fallbacks** - Multiple search strategies ensure reliable results
-- ⚡ **Real-time Progress** - Beautiful CLI with spinners and progress indicators
-- 🛡️ **Robust Error Handling** - Automatic retries and graceful failure recovery
-- 💾 **Local Processing** - All analysis runs on your machine
+- **Smart Tool Discovery** - Automatically finds alternatives to any developer tool
+- **Dynamic Categorization** - Uses AI to understand query context and tool categories
+- **Comprehensive Analysis** - Extracts pricing, tech stack, language support, and integrations
+- **Intelligent Fallbacks** - Multiple search strategies ensure reliable results
+- **Real-time Progress** - Beautiful CLI with spinners and progress indicators
+- **Dynamic Error Handling** - Automatic retries and graceful failure recovery
+- **Local Processing** - All analysis runs on your machine
 
 <p align="center">
   <img src=https://github.com/NoYume/coding-research-agent/blob/748c7db4302ba0310e5a4d25ec9abd70794a4692/media/loading_messages.gif />
@@ -153,7 +153,7 @@ uv run main.py
    - Direct search results (secondary)
    - AI-generated suggestions (tertiary)
 
-4. **Robust Error Handling** - Handles API failures gracefully:
+4. **Robust Error Handling** - Handles API failures:
    - Automatic retries with exponential backoff
    - 502 error detection and recovery
    - JSON parsing error handling
@@ -162,11 +162,10 @@ uv run main.py
 
 Contributions are welcome! Here are some ways you can help:
 
-- 🐛 Report bugs and issues
-- 💡 Suggest new features or improvements
-- 🔧 Submit pull requests
-- 📖 Improve documentation
-- ⭐ Star the repository
+- Report bugs and issues
+- Suggest new features or improvements
+- Submit pull requests
+- Improve documentation
 
 
 <div align="center">
