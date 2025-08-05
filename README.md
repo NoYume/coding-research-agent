@@ -20,8 +20,8 @@ The Coding Research AI Agent is an intelligent CLI tool that helps developers di
 - **Dynamic Categorization** - Uses AI to understand query context and tool categories
 - **Comprehensive Analysis** - Extracts pricing, tech stack, language support, and integrations
 - **Intelligent Fallbacks** - Multiple search strategies ensure reliable results
-- **Real-time Progress** - Beautiful CLI with spinners and progress indicators
-- **Dynamic Error Handling** - Automatic retries and graceful failure recovery
+- **Real-time Progress** - Custom CLI with spinners and progress indicators
+- **Dynamic Error Handling** - Automatic retries and failure recovery
 - **Local Processing** - All analysis runs on your machine
 
 <p align="center">
