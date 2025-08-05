@@ -15,15 +15,15 @@ class DeveloperToolsPrompts:
                                 - If no specific tools found, return "No specific tools found"
 
                                 VALID EXTRACTION EXAMPLES:
-                                ✅ "Vercel", "Netlify", "Railway" 
-                                ✅ "Claude", "Gemini", "Llama"
-                                ✅ "ChromaDB", "Pinecone", "Weaviate"
+                                "Vercel", "Netlify", "Railway" 
+                                "Claude", "Gemini", "Llama"
+                                "ChromaDB", "Pinecone", "Weaviate"
 
                                 INVALID EXTRACTIONS:
-                                ❌ "Based on the content, here are alternatives..."
-                                ❌ "AI language models" or "hosting platforms"  
-                                ❌ "The article discusses..." or "Note: While..."
-                                ❌ Long phrases or sentences"""
+                                "Based on the content, here are alternatives..."
+                                "AI language models" or "hosting platforms"  
+                                "The article discusses..." or "Note: While..."
+                                Long phrases or sentences"""
 
 
     @staticmethod
